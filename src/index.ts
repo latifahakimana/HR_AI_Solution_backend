@@ -48,26 +48,26 @@ app.use('/api/dashboard',  dashboardRoutes);
 app.use('/api/analytics',  analyticsRoutes);
 app.use('/api/settings',   settingsRoutes);
 
-// ── Health check ────────────────────────────────────────────
+//  Health check 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Umurava TalentAI Backend', timestamp: new Date().toISOString() });
 });
 
-// ── 404 ─────────────────────────────────────────────────────
+// 404 
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ── Error handler ────────────────────────────────────────────
+// Error handler 
 app.use(errorHandler);
 
-// ── Start ────────────────────────────────────────────────────
+//  Start 
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`\n🚀 Umurava TalentAI Backend running on port ${PORT}`);
-    console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL}`);
-    console.log(`🤖 Gemini API: configured`);
-    console.log(`📦 MongoDB: connected\n`);
+    console.log(`\n Umurava TalentAI Backend running on port ${PORT}`);
+    console.log(` CORS enabled for: ${process.env.FRONTEND_URL}`);
+    console.log(` Gemini API: configured`);
+    console.log(` MongoDB: connected\n`);
   });
 });
 
