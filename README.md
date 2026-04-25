@@ -1,139 +1,48 @@
-# Umurava TalentAI — Backend API
+# Umurava AI Talent Screening Platform - Backend
 
-Node.js + TypeScript backend powering the Umurava AI HR Screening Platform.
+Backend server for the **Umurava AI Hackathon Challenge**. It handles the data, security, and the "AI Brain" that powers our candidate screening system.
 
-## Stack
-- **Runtime**: Node.js + TypeScript
-- **Framework**: Express.js
-- **Database**: MongoDB Atlas (Mongoose)
-- **AI**: Google Gemini API (`gemini-1.5-pro`)
-- **Auth**: JWT (Bearer token)
-- **File Parsing**: CSV, XLSX, PDF
+## Tech Stack
+- **Server**: Node.js + TypeScript
+- **Database**: MongoDB Atlas 
+- **AI**: Google Gemini API 
+- **Hosting**: Deployed on **Render**.
 
----
+## Local Setup
+**Install dependencies**:
+    ```
+    npm install
+    ```
 
-## Setup
+**Build and Run**:
+    ```
+    npm run build
+    npm start
+    ```
+##  Live API
+The backend is live and accessible at:
+**<a href="https://umurava-hr-ai-backend-1.onrender.com/api" target="_blank">Backend</a>**
 
-```bash
-npm install
-cp .env.example .env   # fill in your values
-npm run seed           # seed DB with demo users + jobs + applicants
-npm run dev            # start dev server on port 5000
-```
 
-### Environment Variables
-```
-PORT=5000
-MONGODB_URI=mongodb+srv://...
-GEMINI_API_KEY=AIza...
-FRONTEND_URL=https://hr-talent-ai-solution-m1dp.vercel.app
-JWT_SECRET=your_secret
-JWT_EXPIRES_IN=7d
-```
+##  AI Decision Flow
+Our system follows a clear 8-step process to find the best talent:
 
-### Demo Credentials (after seed)
-- **Admin**: admin@umurava.africa / Admin@1234
-- **Recruiter**: recruiter@umurava.africa / Recruiter@1234
-
----
-
-## API Reference
-
-All protected routes require: `Authorization: Bearer <token>`
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register recruiter |
-| POST | `/api/auth/login` | Login → returns JWT |
-| GET  | `/api/auth/me` | Get current user |
-
-### Dashboard
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/dashboard` | Stats, recent jobs, AI activity chart |
-
-### Jobs
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | `/api/jobs` | List all jobs (filter: status, location, department, search) |
-| GET    | `/api/jobs/stats` | Count by status |
-| GET    | `/api/jobs/:id` | Single job |
-| POST   | `/api/jobs` | Create job |
-| PUT    | `/api/jobs/:id` | Update job |
-| PATCH  | `/api/jobs/:id/status` | Change status only |
-| DELETE | `/api/jobs/:id` | Delete job + its applicants |
-| GET    | `/api/jobs/:id/applicants` | Applicants for a specific job |
-
-### Applicants
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | `/api/applicants` | List all (filter: jobId, status, source, search, page, limit) |
-| GET    | `/api/applicants/stats` | Count by status |
-| GET    | `/api/applicants/:id` | Single applicant |
-| POST   | `/api/applicants` | Add one (Umurava platform profile) |
-| POST   | `/api/applicants/bulk` | Add many profiles at once |
-| POST   | `/api/applicants/upload` | Upload CSV / XLSX / PDF files |
-| PATCH  | `/api/applicants/:id/status` | Update status |
-| DELETE | `/api/applicants/:id` | Delete applicant |
-
-### AI Screening
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | `/api/screening` | List all screening runs |
-| GET    | `/api/screening/latest/:jobId` | Latest completed screening for a job |
-| GET    | `/api/screening/:id` | Full screening result with shortlist |
-| POST   | `/api/screening/run` | **Trigger AI screening** |
-| GET    | `/api/screening/:id/status` | Poll status (running/completed/failed) |
-| DELETE | `/api/screening/:id` | Delete result |
-
-#### POST /api/screening/run — body:
-```json
-{
-  "jobId": "...",
-  "shortlistSize": 10,
-  "weights": {
-    "skillsMatch": 40,
-    "experienceMatch": 30,
-    "educationMatch": 15,
-    "projectRelevance": 10,
-    "availabilityBonus": 5
-  }
-}
-```
-Returns `202 Accepted` immediately with `screeningId`. Poll `/api/screening/:id/status` until `status === "completed"`, then fetch `/api/screening/:id` for full results.
-
-### Analytics
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/analytics` | Full analytics data (score distribution, skill gaps, pipeline) |
-| GET | `/api/analytics/pipeline/:jobId` | Kanban pipeline data for one job |
-
-### Settings
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/settings` | Get current user settings |
-| PUT | `/api/settings/ai` | Save AI configuration |
-| PUT | `/api/settings/organization` | Save org info |
-
----
-
-## AI Decision Flow
-
-1. Recruiter selects a job and clicks **Run AI Screening**
-2. Backend fetches all `pending`/`screened` applicants for that job
-3. Applicants are batched (20 per batch) and sent to **Gemini 1.5 Pro**
-4. Each batch gets a structured prompt with:
+1. **Start:** The recruiter chooses a job and clicks "Run AI Screening."
+2. **Gathering:** The system collects all the applicants waiting for review.
+3. **Grouping:** Candidates are put into small groups so the AI can analyze them efficiently.
+4. **Instructions:** The AI is given the job requirements and the scoring rules (weights).
    - Full job requirements and required skills
    - All candidate profiles (skills, experience, education, projects, availability)
    - Scoring weights (skills 40%, experience 30%, education 15%, projects 10%, availability 5%)
-5. Gemini returns JSON with ranked candidates, score breakdowns, strengths, gaps, and recommendation
-6. Results are merged, sorted by `matchScore`, top N saved to `ScreeningResult` collection
-7. Shortlisted applicants get `status: "shortlisted"` in `Applicant` collection
-8. Frontend polls `/api/screening/:id/status` and shows results when complete
+5. **AI Analysis:** The AI evaluates each person and identifies their **Strengths** and **Gaps**.
+6. **Ranking:** The system combines all scores and ranks the candidates from best to worst.
+7. **Tagging:** The top candidates are automatically updated to "Shortlisted" in the database.
+8. **Display:** The dashboard updates to show the recruiter the final ranked list and the AI’s reasoning.
 
-## Assumptions & Limitations
-- PDF parsing is heuristic-based; structured JSON profiles produce more accurate AI scores
-- Gemini API rate limits may slow large batches (>100 applicants)
-- AI accuracy rating (94%) is illustrative; real accuracy requires recruiter feedback loop
-- No real-time WebSocket — frontend polls every 3s for screening status
+##  Deployment
+- **Platform**: Deployed on **Render**.
+- **Database**: Hosted on **MongoDB Atlas**.
+- **AI Connectivity**: Securely connected to Google AI Studio.
+
+  
+  *Built with ❤️ by Sentarecy team.*
